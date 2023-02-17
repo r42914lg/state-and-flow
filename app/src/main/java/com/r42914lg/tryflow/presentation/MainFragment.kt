@@ -1,4 +1,4 @@
-package com.r42914lg.tryflow.ui
+package com.r42914lg.tryflow.presentation
 
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
@@ -87,6 +87,8 @@ class MainFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             viewModel.downloadProgress.collect() {
                 progressBar.progress = it
+                if (it == 100)
+                    viewModel.requestNext()
             }
 
             viewModel.contentState.collect {

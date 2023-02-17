@@ -1,13 +1,20 @@
-package com.r42914lg.tryflow.ui
+package com.r42914lg.tryflow.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.r42914lg.tryflow.domain.CategoryDetailed
 import kotlinx.coroutines.launch
-
-import com.r42914lg.tryflow.domain.CategoryInteractor
+import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
 import kotlinx.coroutines.flow.*
+
+interface CategoryInteractor {
+    fun startDownload(): Flow<Int>
+    suspend fun requestNext()
+    suspend fun getCategoryData() : SharedFlow<Result<CategoryDetailed, Throwable>>
+    suspend fun setAutoRefresh(isOn: Boolean)
+}
 
 class MainViewModel(
     private val interactor: CategoryInteractor
@@ -21,6 +28,8 @@ class MainViewModel(
 
     init {
         viewModelScope.launch {
+            downloadProgress = interactor.startDownload()
+
             interactor.getCategoryData().collect {
                 it.doOnError { error ->
                     _contentState.emit(ContentState.Error(error))
@@ -28,13 +37,13 @@ class MainViewModel(
                     _contentState.emit(ContentState.Content(data))
                 }
             }
-
-            downloadProgress = interactor.startDownload()
         }
     }
 
     fun requestNext() {
-        interactor.requestNext()
+        viewModelScope.launch {
+            interactor.requestNext()
+        }
     }
 
     fun onAutoRefreshClicked(isOn: Boolean) {

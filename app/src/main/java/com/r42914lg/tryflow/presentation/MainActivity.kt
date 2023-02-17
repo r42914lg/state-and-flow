@@ -1,4 +1,4 @@
-package com.r42914lg.tryflow.ui
+package com.r42914lg.tryflow.presentation
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle

@@ -1,4 +1,4 @@
-package com.r42914lg.tryflow.ui
+package com.r42914lg.tryflow.presentation
 
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
@@ -9,9 +9,10 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.r42914lg.tryflow.R
-import com.r42914lg.tryflow.domain.asString
+import com.r42914lg.tryflow.utils.doOnError
+import com.r42914lg.tryflow.utils.doOnSuccess
+import com.r42914lg.tryflow.utils.log
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
 
 class StatsFragment : Fragment() {
 
@@ -23,11 +24,11 @@ class StatsFragment : Fragment() {
         fun newInstance() = StatsFragment()
     }
 
-    private lateinit var viewModel: MainViewModel
+    private lateinit var viewModel: StatsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        viewModel = ViewModelProvider(this)[StatsViewModel::class.java]
     }
 
     override fun onCreateView(
@@ -48,14 +49,23 @@ class StatsFragment : Fragment() {
         tvOne = view.findViewById(R.id.tvOne)
         tvTwo = view.findViewById(R.id.tvTwo)
         tvThree = view.findViewById(R.id.tvThree)
+        
+        tvOne.text = "cleared!!!"
+        tvTwo.text = "cleared!!!"
+        tvThree.text = "cleared!!!"
     }
 
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            viewModel.categoryFlow.collect() {
-                tvThree.text = tvTwo.text
-                tvTwo.text = tvOne.text
-                tvOne.text = it.title
+            viewModel.categorySharedFlow.collect() {
+                log("Stats fragment consumed item: $it")
+                it.doOnError { error ->
+                    log(error.message ?: "Error item in flow")
+                }.doOnSuccess { data ->
+                    tvThree.text = tvTwo.text
+                    tvTwo.text = tvOne.text
+                    tvOne.text = data.title
+                }
             }
         }
     }

@@ -1,19 +1,17 @@
-package com.r42914lg.tryflow.domain
+package com.r42914lg.tryflow.data
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-
+import com.r42914lg.tryflow.domain.*
 import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
-import com.r42914lg.tryflow.utils.getOrThrow
+import kotlinx.coroutines.flow.*
 
-class CategoryRepository(
+class CategoryRepositoryImpl(
     private val categoryLocalDataSource: CategoryLocalDataSource,
-    private val categoryRemoteDataSource: CategoryRemoteDataSource
-) {
+    private val categoryRemoteDataSource: CategoryRemoteDataSource,
+) : CategoryRepository {
 
-    fun init(): Flow<Int> = flow {
+    override fun initAndGetProgressFlow(): Flow<Int> = flow {
             val catList = categoryRemoteDataSource.getCategories()
 
             catList.doOnError {
@@ -40,6 +38,11 @@ class CategoryRepository(
             }
         }
 
-    suspend fun getCategoryData(): Flow<Result<CategoryDetailed, Throwable>> =
-        categoryLocalDataSource.getCategoryData()
+    private val _sharedCategoryFlow = MutableSharedFlow<Result<CategoryDetailed, Throwable>>()
+    override val sharedCategoryFlow: SharedFlow<Result<CategoryDetailed, Throwable>>
+        get() = _sharedCategoryFlow
+
+    override suspend fun requestNext() {
+        _sharedCategoryFlow.emit(categoryLocalDataSource.getCategoryData())
+    }
 }

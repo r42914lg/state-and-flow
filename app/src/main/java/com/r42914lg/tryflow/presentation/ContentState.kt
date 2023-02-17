@@ -1,4 +1,4 @@
-package com.r42914lg.tryflow.ui
+package com.r42914lg.tryflow.presentation
 
 import com.r42914lg.tryflow.domain.CategoryDetailed
 
