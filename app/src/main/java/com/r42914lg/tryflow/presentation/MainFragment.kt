@@ -1,6 +1,5 @@
 package com.r42914lg.tryflow.presentation
 
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -10,10 +9,13 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.r42914lg.tryflow.R
 import com.r42914lg.tryflow.domain.asString
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainFragment : Fragment() {
 
     private lateinit var progressBar: ProgressBar
@@ -30,12 +32,7 @@ class MainFragment : Fragment() {
         fun newInstance() = MainFragment()
     }
 
-    private lateinit var viewModel: MainViewModel
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[MainViewModel::class.java]
-    }
+    private val viewModel by viewModels<MainViewModel>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -67,13 +64,13 @@ class MainFragment : Fragment() {
         }
 
         btnAutoRefresh.setOnClickListener {
-            btnStats.text =
-                if (btnStats.text == "Auto refresh ON")
-                    "Auto refresh OFF"
+            btnAutoRefresh.text =
+                if (btnAutoRefresh.text == "AUTO REFRESH ON")
+                    "AUTO REFRESH OFF"
                 else
-                    "Auto refresh ON"
+                    "AUTO REFRESH ON"
 
-            viewModel.onAutoRefreshClicked(btnStats.text == "Auto refresh ON")
+            viewModel.onAutoRefreshClicked(btnAutoRefresh.text == "AUTO REFRESH ON")
         }
 
         btnStats.setOnClickListener {

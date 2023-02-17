@@ -1,6 +1,7 @@
 package com.r42914lg.tryflow.domain
 
 import com.r42914lg.tryflow.presentation.CategoryInteractor
+import com.r42914lg.tryflow.presentation.StatsInteractor
 import com.r42914lg.tryflow.utils.Result
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
@@ -8,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 interface CategoryRepository {
 
@@ -17,7 +19,7 @@ interface CategoryRepository {
     val sharedCategoryFlow: SharedFlow<Result<CategoryDetailed, Throwable>>
 }
 
-class CategoryInteractorImpl(
+class CategoryInteractorImpl @Inject constructor(
     private val repository: CategoryRepository
 ) : CategoryInteractor {
 
@@ -46,4 +48,12 @@ class CategoryInteractorImpl(
         } else
             autoRefreshJob.cancel()
     }
+}
+
+class StatsInteractorImpl @Inject constructor(
+    private val repository: CategoryRepository
+) : StatsInteractor {
+
+    override suspend fun getCategoryData() =
+        repository.sharedCategoryFlow
 }

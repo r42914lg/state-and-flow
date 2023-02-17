@@ -7,7 +7,9 @@ import kotlinx.coroutines.launch
 import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import javax.inject.Inject
 
 interface CategoryInteractor {
     fun startDownload(): Flow<Int>
@@ -16,7 +18,8 @@ interface CategoryInteractor {
     suspend fun setAutoRefresh(isOn: Boolean)
 }
 
-class MainViewModel(
+@HiltViewModel
+class MainViewModel @Inject constructor(
     private val interactor: CategoryInteractor
 ) : ViewModel() {
 

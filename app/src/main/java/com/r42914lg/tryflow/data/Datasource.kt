@@ -10,11 +10,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.http.GET
 import retrofit2.http.Query
+import javax.inject.Inject
 
 /**
  * Remote
  */
-class CategoryRemoteDataSource(
+class CategoryRemoteDataSource @Inject constructor(
     private val categoryService: CategoryService
 ) {
     interface CategoryService {
@@ -37,21 +38,21 @@ class CategoryRemoteDataSource(
 
     suspend fun getDetails(categoryId: Int) =
         runOperationCatching {
-            delay(50)
+            delay(10)
             log("finished getDetails")
             categoryService.getDetailedCategory(categoryId)
         }
 
     companion object {
         const val OFFSET = 0
-        const val NUM_OF_ITEMS = 50
+        const val NUM_OF_ITEMS = 20
     }
 }
 
 /**
  * Local (in-memory)
  */
-class CategoryLocalDataSource {
+class CategoryLocalDataSource @Inject constructor() {
     private val _detailsMap = mutableMapOf<Int, CategoryDetailed>()
     private val _keys = mutableSetOf<Int>()
     private var currIndex = 0

@@ -1,19 +1,21 @@
 package com.r42914lg.tryflow.presentation
 
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.r42914lg.tryflow.R
 import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.log
-import kotlinx.coroutines.flow.collect
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class StatsFragment : Fragment() {
 
     private lateinit var tvOne: TextView
@@ -24,12 +26,7 @@ class StatsFragment : Fragment() {
         fun newInstance() = StatsFragment()
     }
 
-    private lateinit var viewModel: StatsViewModel
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[StatsViewModel::class.java]
-    }
+    private val viewModel by viewModels<StatsViewModel>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,6 +38,14 @@ class StatsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        activity?.onBackPressedDispatcher?.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                requireActivity().supportFragmentManager.beginTransaction()
+                    .replace(R.id.container, MainFragment.newInstance())
+                    .commitNow()
+            }
+        })
+
         initUi(view)
         setupObservers()
     }
@@ -49,7 +54,7 @@ class StatsFragment : Fragment() {
         tvOne = view.findViewById(R.id.tvOne)
         tvTwo = view.findViewById(R.id.tvTwo)
         tvThree = view.findViewById(R.id.tvThree)
-        
+
         tvOne.text = "cleared!!!"
         tvTwo.text = "cleared!!!"
         tvThree.text = "cleared!!!"

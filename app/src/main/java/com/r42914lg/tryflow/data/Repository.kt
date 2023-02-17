@@ -5,8 +5,9 @@ import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
 import kotlinx.coroutines.flow.*
+import javax.inject.Inject
 
-class CategoryRepositoryImpl(
+class CategoryRepositoryImpl @Inject constructor(
     private val categoryLocalDataSource: CategoryLocalDataSource,
     private val categoryRemoteDataSource: CategoryRemoteDataSource,
 ) : CategoryRepository {

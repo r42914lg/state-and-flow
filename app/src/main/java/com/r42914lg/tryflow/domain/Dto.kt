@@ -20,4 +20,4 @@ data class Clue(
     fun asString() = String.format("Question: %s; Answer: %s \n\n", question, answer)
 }
 
-fun List<Clue>.asString() = joinToString { it.asString() }
+fun List<Clue>.asString() = joinToString(limit = 5) { it.asString() }
