@@ -1,15 +1,10 @@
 package com.r42914lg.tryflow.data
 
-import com.r42914lg.tryflow.domain.Category
 import com.r42914lg.tryflow.domain.CategoryDetailed
 import com.r42914lg.tryflow.utils.log
 import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.runOperationCatching
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import retrofit2.http.GET
-import retrofit2.http.Query
 import javax.inject.Inject
 
 /**
@@ -18,28 +13,18 @@ import javax.inject.Inject
 class CategoryRemoteDataSource @Inject constructor(
     private val categoryService: CategoryService
 ) {
-    interface CategoryService {
-
-        @GET("categories") suspend fun getCategories(
-            @Query("count") amountOfCluesToReturn: Int,
-            @Query("offset") offset: Int,
-        ): List<Category>
-
-        @GET("category")
-        suspend fun getDetailedCategory(@Query("id") categoryId: Int): CategoryDetailed
-    }
-
     suspend fun getCategories() =
         runOperationCatching {
-            delay(2000)
-            log("finished getCategories")
-            categoryService.getCategories(NUM_OF_ITEMS, OFFSET)
+            delay(1000)
+            val retVal = categoryService.getCategories(NUM_OF_ITEMS, OFFSET)
+            log("finished getCategories - count loaded: ${retVal.size}")
+            retVal
         }
 
     suspend fun getDetails(categoryId: Int) =
         runOperationCatching {
-            delay(10)
-            log("finished getDetails")
+            delay(100)
+            log("finished getDetails for id: $categoryId")
             categoryService.getDetailedCategory(categoryId)
         }
 
@@ -57,8 +42,11 @@ class CategoryLocalDataSource @Inject constructor() {
     private val _keys = mutableSetOf<Int>()
     private var currIndex = 0
 
+    val isReady: Boolean
+        get() = _keys.isNotEmpty()
+
     suspend fun saveAll(detailsMap: MutableMap<Int, CategoryDetailed>) {
-        delay(10000)
+        delay(3000)
         _detailsMap.putAll(detailsMap)
         _keys.addAll(_detailsMap.keys)
         log("finished saveData")
@@ -66,8 +54,8 @@ class CategoryLocalDataSource @Inject constructor() {
 
     suspend fun getCategoryData(): Result<CategoryDetailed, Throwable> =
         runOperationCatching {
-            delay(2000)
-            log("finished getDataAsFlow")
+            delay(1000)
+            log("getCategoryData - about to retrieve next")
             nextItem()
         }
 

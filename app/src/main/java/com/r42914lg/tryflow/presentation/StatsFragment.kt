@@ -14,6 +14,7 @@ import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.log
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.concurrent.fixedRateTimer
 
 @AndroidEntryPoint
 class StatsFragment : Fragment() {
@@ -40,9 +41,7 @@ class StatsFragment : Fragment() {
 
         activity?.onBackPressedDispatcher?.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                requireActivity().supportFragmentManager.beginTransaction()
-                    .replace(R.id.container, MainFragment.newInstance())
-                    .commitNow()
+                requireActivity().supportFragmentManager.popBackStack()
             }
         })
 

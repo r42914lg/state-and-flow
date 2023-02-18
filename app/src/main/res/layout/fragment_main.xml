@@ -27,7 +27,7 @@
         <Button
             android:id="@+id/btn_auto_refresh"
             android:layout_margin="5dp"
-            android:text="AUTO REFRESH OFF"
+            android:text="DEFAULT"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 

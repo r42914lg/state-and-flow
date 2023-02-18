@@ -64,28 +64,26 @@ class MainFragment : Fragment() {
         }
 
         btnAutoRefresh.setOnClickListener {
-            btnAutoRefresh.text =
-                if (btnAutoRefresh.text == "AUTO REFRESH ON")
-                    "AUTO REFRESH OFF"
-                else
-                    "AUTO REFRESH ON"
-
-            viewModel.onAutoRefreshClicked(btnAutoRefresh.text == "AUTO REFRESH ON")
+            viewModel.onAutoRefreshClicked()
         }
 
         btnStats.setOnClickListener {
             requireActivity().supportFragmentManager.beginTransaction()
                 .replace(R.id.container, StatsFragment.newInstance())
-                .commitNow()
+                .addToBackStack("Stats")
+                .commit()
         }
     }
 
     private fun setupObservers() {
+
+        viewModel.autoRefreshStatus.observe(viewLifecycleOwner) {
+            btnAutoRefresh.text = if (it) "AUTO-REFRESH ON" else "AUTO-REFRESH OFF"
+        }
+
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             viewModel.downloadProgress.collect() {
                 progressBar.progress = it
-                if (it == 100)
-                    viewModel.requestNext()
             }
 
             viewModel.contentState.collect {

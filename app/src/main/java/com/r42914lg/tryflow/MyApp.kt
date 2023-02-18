@@ -8,4 +8,8 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
     }
+
+    companion object {
+        const val TEST_DATA_SOURCE = true
+    }
 }

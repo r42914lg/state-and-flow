@@ -1,8 +1,7 @@
 package com.r42914lg.tryflow.di
 
-import com.r42914lg.tryflow.data.CategoryLocalDataSource
-import com.r42914lg.tryflow.data.CategoryRemoteDataSource
-import com.r42914lg.tryflow.data.CategoryRepositoryImpl
+import com.r42914lg.tryflow.MyApp
+import com.r42914lg.tryflow.data.*
 import com.r42914lg.tryflow.domain.CategoryInteractorImpl
 import com.r42914lg.tryflow.domain.CategoryRepository
 import com.r42914lg.tryflow.domain.StatsInteractorImpl
@@ -59,13 +58,15 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun providePhoneService(retrofit: Retrofit) : CategoryRemoteDataSource.CategoryService
-        = retrofit.create(CategoryRemoteDataSource.CategoryService::class.java)
+    fun provideCategoryService(retrofit: Retrofit, testImpl: CategoryServiceTestImpl) : CategoryService =
+        if (MyApp.TEST_DATA_SOURCE)
+            testImpl
+        else
+            retrofit.create(CategoryService::class.java)
 
     @Provides
     @Singleton
-    fun provideUserDataSource(categoryService: CategoryRemoteDataSource.CategoryService)
-        = CategoryRemoteDataSource(categoryService)
+    fun provideRemoteDataSource(categoryService: CategoryService) = CategoryRemoteDataSource(categoryService)
 
     @Singleton
     @Provides

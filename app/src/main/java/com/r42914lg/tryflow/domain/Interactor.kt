@@ -3,6 +3,7 @@ package com.r42914lg.tryflow.domain
 import com.r42914lg.tryflow.presentation.CategoryInteractor
 import com.r42914lg.tryflow.presentation.StatsInteractor
 import com.r42914lg.tryflow.utils.Result
+import com.r42914lg.tryflow.utils.log
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -13,7 +14,7 @@ import javax.inject.Inject
 
 interface CategoryRepository {
 
-    fun initAndGetProgressFlow(): Flow<Int>
+    val progressFlow: Flow<Int>
     suspend fun requestNext()
 
     val sharedCategoryFlow: SharedFlow<Result<CategoryDetailed, Throwable>>
@@ -25,28 +26,33 @@ class CategoryInteractorImpl @Inject constructor(
 
     private lateinit var autoRefreshJob: Job
 
-    override fun startDownload(): Flow<Int> =
-        repository.initAndGetProgressFlow()
+    override fun startDownload(): Flow<Int> = repository.progressFlow
 
     override suspend fun requestNext() {
         repository.requestNext()
     }
 
-    override suspend fun getCategoryData() =
-        repository.sharedCategoryFlow
+    override val sharedFlowCategoryData: SharedFlow<Result<CategoryDetailed, Throwable>>
+        get() {
+            log("CategoryInteractorImpl: reference to sharedFlow requested, returning: $repository.sharedCategoryFlow")
+            return repository.sharedCategoryFlow
+        }
 
     override suspend fun setAutoRefresh(isOn: Boolean) {
         if (isOn) {
             coroutineScope {
                 autoRefreshJob = launch {
                     while (true) {
+                        log("Auto refresh - requesting next...")
                         repository.requestNext()
-                        delay(5000)
+                        delay(2000)
                     }
                 }
             }
-        } else
+        } else {
             autoRefreshJob.cancel()
+            log("Auto refresh job cancelled")
+        }
     }
 }
 
@@ -54,6 +60,9 @@ class StatsInteractorImpl @Inject constructor(
     private val repository: CategoryRepository
 ) : StatsInteractor {
 
-    override suspend fun getCategoryData() =
-        repository.sharedCategoryFlow
+    override val sharedFlowCategoryData: SharedFlow<Result<CategoryDetailed, Throwable>>
+        get() {
+            log("StatsInteractorImpl: reference to sharedFlow requested, returning: $repository.sharedCategoryFlow")
+            return repository.sharedCategoryFlow
+        }
 }
