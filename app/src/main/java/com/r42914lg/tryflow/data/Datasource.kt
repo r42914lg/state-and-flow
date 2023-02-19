@@ -45,7 +45,7 @@ class CategoryLocalDataSource @Inject constructor() {
     val isReady: Boolean
         get() = _keys.isNotEmpty()
 
-    suspend fun saveAll(detailsMap: MutableMap<Int, CategoryDetailed>) {
+    suspend fun saveAll(detailsMap: Map<Int, CategoryDetailed>) {
         delay(3000)
         _detailsMap.putAll(detailsMap)
         _keys.addAll(_detailsMap.keys)

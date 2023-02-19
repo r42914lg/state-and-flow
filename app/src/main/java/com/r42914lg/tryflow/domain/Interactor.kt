@@ -1,68 +1,101 @@
 package com.r42914lg.tryflow.domain
 
-import com.r42914lg.tryflow.presentation.CategoryInteractor
-import com.r42914lg.tryflow.presentation.StatsInteractor
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import com.r42914lg.tryflow.presentation.GetCategoryDataInteractor
+import com.r42914lg.tryflow.presentation.GetProgressUseCase
 import com.r42914lg.tryflow.utils.Result
+import com.r42914lg.tryflow.utils.doOnError
+import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.log
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 interface CategoryRepository {
 
-    val progressFlow: Flow<Int>
-    suspend fun requestNext()
-
-    val sharedCategoryFlow: SharedFlow<Result<CategoryDetailed, Throwable>>
+    val repoIsReady: Boolean
+    suspend fun getCategories(): Result<List<Category>, Throwable>
+    suspend fun getDetails(id: Int): Result<CategoryDetailed, Throwable>
+    suspend fun saveAll(detailsMap: Map<Int, CategoryDetailed>)
+    suspend fun requestNext(): Result<CategoryDetailed, Throwable>
 }
 
-class CategoryInteractorImpl @Inject constructor(
+class GetProgressUseCaseImpl @Inject constructor(
     private val repository: CategoryRepository
-) : CategoryInteractor {
+) : GetProgressUseCase {
 
-    private lateinit var autoRefreshJob: Job
-
-    override fun startDownload(): Flow<Int> = repository.progressFlow
-
-    override suspend fun requestNext() {
-        repository.requestNext()
-    }
-
-    override val sharedFlowCategoryData: SharedFlow<Result<CategoryDetailed, Throwable>>
-        get() {
-            log("CategoryInteractorImpl: reference to sharedFlow requested, returning: $repository.sharedCategoryFlow")
-            return repository.sharedCategoryFlow
+    private val _progressFlow = flow {
+        if (repository.repoIsReady) {
+            emit(100)
+            return@flow
         }
 
-    override suspend fun setAutoRefresh(isOn: Boolean) {
-        if (isOn) {
-            coroutineScope {
-                autoRefreshJob = launch {
-                    while (true) {
-                        log("Auto refresh - requesting next...")
-                        repository.requestNext()
-                        delay(2000)
-                    }
+        val catList = repository.getCategories()
+
+        catList.doOnError {
+            emit(-1)
+        }.doOnSuccess { categoryList ->
+            emit(1)
+
+            val detailsMap = mutableMapOf<Int, CategoryDetailed>()
+            var loadedCount = 0
+
+            categoryList.forEach { category ->
+                val detail = repository.getDetails(category.id)
+                loadedCount++
+
+                detail.doOnSuccess {
+                    detailsMap[it.id] = it
+                    emit(((loadedCount.toFloat() / categoryList.size) * 100).toInt() -1)
+                }.doOnError {
+                    log("error in CatDetails... just skip")
                 }
             }
-        } else {
-            autoRefreshJob.cancel()
-            log("Auto refresh job cancelled")
+
+            repository.saveAll(detailsMap)
+            emit(100)
         }
     }
+
+    override val progressFlow: Flow<Int>
+        get() = _progressFlow
 }
 
-class StatsInteractorImpl @Inject constructor(
+class GetCategoryDataInteractorImpl @Inject constructor(
     private val repository: CategoryRepository
-) : StatsInteractor {
+) : GetCategoryDataInteractor {
+
+    private var autoRefreshIsOn = false
+    private var nextItemRequested = false
+
+    private val _dataFlow = flow {
+        while (true) {
+            if (autoRefreshIsOn || nextItemRequested) {
+                nextItemRequested = false
+
+                emit(repository.requestNext())
+                log("Next item received from repository and emitted")
+            }
+
+            delay(2000)
+        }
+    }
+
+    override fun requestNext() {
+        nextItemRequested = true
+    }
+
+    override fun setAutoRefresh(isOn: Boolean) {
+        autoRefreshIsOn = isOn
+    }
+
+    private val _sharedFlowCategoryData =
+        _dataFlow.shareIn(
+            ProcessLifecycleOwner.get().lifecycleScope,
+            SharingStarted.WhileSubscribed(),
+            3)
 
     override val sharedFlowCategoryData: SharedFlow<Result<CategoryDetailed, Throwable>>
-        get() {
-            log("StatsInteractorImpl: reference to sharedFlow requested, returning: $repository.sharedCategoryFlow")
-            return repository.sharedCategoryFlow
-        }
+        get() = _sharedFlowCategoryData
 }

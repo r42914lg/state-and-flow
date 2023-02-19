@@ -4,25 +4,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.r42914lg.tryflow.domain.CategoryDetailed
 import kotlinx.coroutines.launch
-import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
-interface CategoryInteractor {
-    val sharedFlowCategoryData : SharedFlow<Result<CategoryDetailed, Throwable>>
-    fun startDownload(): Flow<Int>
-    suspend fun requestNext()
-    suspend fun setAutoRefresh(isOn: Boolean)
-}
-
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val interactor: CategoryInteractor
+    private val progressUseCase: GetProgressUseCase,
+    private val getCategoryDataInteractor: GetCategoryDataInteractor,
 ) : ViewModel() {
 
     private val _autoRefreshStatus = MutableLiveData(false)
@@ -31,9 +23,7 @@ class MainViewModel @Inject constructor(
 
     fun onAutoRefreshClicked() {
         _autoRefreshStatus.value = !_autoRefreshStatus.value!!
-        viewModelScope.launch {
-            interactor.setAutoRefresh(_autoRefreshStatus.value!!)
-        }
+        getCategoryDataInteractor.setAutoRefresh(_autoRefreshStatus.value!!)
     }
 
     private val _contentState: MutableStateFlow<ContentState> = MutableStateFlow(ContentState.Loading)
@@ -44,9 +34,9 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            downloadProgress = interactor.startDownload()
+            downloadProgress = progressUseCase.progressFlow
 
-            interactor.sharedFlowCategoryData.collect {
+            getCategoryDataInteractor.sharedFlowCategoryData.collect {
                 it.doOnError { error ->
                     _contentState.emit(ContentState.Error(error))
                 }.doOnSuccess { data ->
@@ -57,8 +47,6 @@ class MainViewModel @Inject constructor(
     }
 
     fun requestNext() {
-        viewModelScope.launch {
-            interactor.requestNext()
-        }
+        getCategoryDataInteractor.requestNext()
     }
 }

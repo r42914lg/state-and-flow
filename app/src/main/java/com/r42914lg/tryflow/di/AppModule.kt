@@ -2,11 +2,9 @@ package com.r42914lg.tryflow.di
 
 import com.r42914lg.tryflow.MyApp
 import com.r42914lg.tryflow.data.*
-import com.r42914lg.tryflow.domain.CategoryInteractorImpl
-import com.r42914lg.tryflow.domain.CategoryRepository
-import com.r42914lg.tryflow.domain.StatsInteractorImpl
-import com.r42914lg.tryflow.presentation.CategoryInteractor
-import com.r42914lg.tryflow.presentation.StatsInteractor
+import com.r42914lg.tryflow.domain.*
+import com.r42914lg.tryflow.presentation.GetCategoryDataInteractor
+import com.r42914lg.tryflow.presentation.GetProgressUseCase
 
 import dagger.Module
 import dagger.Provides
@@ -70,18 +68,18 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideCatInteractorImpl(repository: CategoryRepository) = CategoryInteractorImpl(repository)
+    fun provideCatInteractorImpl(repository: CategoryRepository) = GetProgressUseCaseImpl(repository)
 
     @Singleton
     @Provides
-    fun provideStatsInteractorImpl(repository: CategoryRepository) = StatsInteractorImpl(repository)
+    fun provideStatsInteractorImpl(repository: CategoryRepository) = GetCategoryDataInteractorImpl(repository)
 
     @Singleton
     @Provides
-    fun provideCatInteractor(impl: CategoryInteractorImpl): CategoryInteractor = impl
+    fun provideGetProgressUC(impl: GetProgressUseCaseImpl): GetProgressUseCase = impl
 
     @Singleton
     @Provides
-    fun provideStatsInteractor(impl: StatsInteractorImpl): StatsInteractor = impl
+    fun provideGetCategoryDataInteractor(impl: GetCategoryDataInteractorImpl): GetCategoryDataInteractor = impl
 
 }

@@ -13,8 +13,10 @@ import com.r42914lg.tryflow.R
 import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.log
+import com.r42914lg.tryflow.utils.observeIn
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.concurrent.fixedRateTimer
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 
 @AndroidEntryPoint
 class StatsFragment : Fragment() {
@@ -60,8 +62,8 @@ class StatsFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            viewModel.categorySharedFlow.collect() {
+        viewModel.categorySharedFlow
+            .onEach {
                 log("Stats fragment consumed item: $it")
                 it.doOnError { error ->
                     log(error.message ?: "Error item in flow")
@@ -70,7 +72,6 @@ class StatsFragment : Fragment() {
                     tvTwo.text = tvOne.text
                     tvOne.text = data.title
                 }
-            }
-        }
+            }.observeIn(this@StatsFragment)
     }
 }

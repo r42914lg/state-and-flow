@@ -13,7 +13,10 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.r42914lg.tryflow.R
 import com.r42914lg.tryflow.domain.asString
+import com.r42914lg.tryflow.utils.log
+import com.r42914lg.tryflow.utils.observeIn
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.onEach
 
 @AndroidEntryPoint
 class MainFragment : Fragment() {
@@ -84,28 +87,33 @@ class MainFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             viewModel.downloadProgress.collect() {
                 progressBar.progress = it
+                if (it == 100)
+                    viewModel.requestNext()
             }
 
-            viewModel.contentState.collect {
-                when (it) {
-                    is ContentState.Loading -> {
-                        tvStatus.visibility = View.VISIBLE
-                    }
-                    is ContentState.Error -> {
-                        tvStatus.visibility = View.INVISIBLE
-                        Toast.makeText(requireContext(), "Error while loading", Toast.LENGTH_LONG)
-                            .show()
-                    }
-                    is ContentState.Content -> {
-                        tvStatus.visibility = View.INVISIBLE
-                        val catDetail = it.categoryDetailed
-                        tvId.text = catDetail.id.toString()
-                        tvTitle.text = catDetail.title
-                        tvCount.text = catDetail.cluesCount.toString()
-                        tvClues.text = catDetail.clues.asString()
+            viewModel.contentState
+                .onEach {
+                    log("Main fragment consumed item: $it")
+                    when (it) {
+                        is ContentState.Loading -> {
+                            tvStatus.visibility = View.VISIBLE
+                        }
+                        is ContentState.Error -> {
+                            tvStatus.visibility = View.INVISIBLE
+                            Toast.makeText(requireContext(), "Error while loading", Toast.LENGTH_LONG)
+                                .show()
+                        }
+                        is ContentState.Content -> {
+                            tvStatus.visibility = View.INVISIBLE
+                            val catDetail = it.categoryDetailed
+                            tvId.text = catDetail.id.toString()
+                            tvTitle.text = catDetail.title
+                            tvCount.text = catDetail.cluesCount.toString()
+                            tvClues.text = catDetail.clues.asString()
+                        }
                     }
                 }
-            }
+                .observeIn(this@MainFragment)
         }
     }
 }
