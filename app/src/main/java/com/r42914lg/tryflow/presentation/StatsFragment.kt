@@ -51,6 +51,16 @@ class StatsFragment : Fragment() {
         setupObservers()
     }
 
+    override fun onPause() {
+        super.onPause()
+        viewModel.onFragmentPaused()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.onFragmentResumed()
+    }
+
     private fun initUi(view: View) {
         tvOne = view.findViewById(R.id.tvOne)
         tvTwo = view.findViewById(R.id.tvTwo)

@@ -51,6 +51,16 @@ class MainFragment : Fragment() {
         setupObservers()
     }
 
+    override fun onPause() {
+        super.onPause()
+        viewModel.onFragmentPaused()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.onFragmentResumed()
+    }
+
     private fun initUi(view: View) {
         progressBar = view.findViewById(R.id.progress_horizontal)
         btnNextItem = view.findViewById(R.id.btn_next)
@@ -87,8 +97,6 @@ class MainFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             viewModel.downloadProgress.collect() {
                 progressBar.progress = it
-                if (it == 100)
-                    viewModel.requestNext()
             }
 
             viewModel.contentState
@@ -97,14 +105,24 @@ class MainFragment : Fragment() {
                     when (it) {
                         is ContentState.Loading -> {
                             tvStatus.visibility = View.VISIBLE
+                            btnAutoRefresh.isEnabled = false
+                            btnNextItem.isEnabled = false
+                            btnStats.isEnabled = false
                         }
                         is ContentState.Error -> {
                             tvStatus.visibility = View.INVISIBLE
+                            btnAutoRefresh.isEnabled = true
+                            btnStats.isEnabled = true
+                            btnNextItem.isEnabled = true
                             Toast.makeText(requireContext(), "Error while loading", Toast.LENGTH_LONG)
                                 .show()
                         }
                         is ContentState.Content -> {
+                            btnAutoRefresh.isEnabled = true
+                            btnStats.isEnabled = true
+                            btnNextItem.isEnabled = true
                             tvStatus.visibility = View.INVISIBLE
+
                             val catDetail = it.categoryDetailed
                             tvId.text = catDetail.id.toString()
                             tvTitle.text = catDetail.title

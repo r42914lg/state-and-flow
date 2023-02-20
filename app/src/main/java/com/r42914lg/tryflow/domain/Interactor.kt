@@ -8,7 +8,7 @@ import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.doOnError
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.log
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
@@ -17,8 +17,11 @@ interface CategoryRepository {
     val repoIsReady: Boolean
     suspend fun getCategories(): Result<List<Category>, Throwable>
     suspend fun getDetails(id: Int): Result<CategoryDetailed, Throwable>
+
     suspend fun saveAll(detailsMap: Map<Int, CategoryDetailed>)
-    suspend fun requestNext(): Result<CategoryDetailed, Throwable>
+    fun requestNext()
+
+    val catDetailsColdFlow: Flow<Result<CategoryDetailed, Throwable>>
 }
 
 class GetProgressUseCaseImpl @Inject constructor(
@@ -54,6 +57,7 @@ class GetProgressUseCaseImpl @Inject constructor(
             }
 
             repository.saveAll(detailsMap)
+            repository.requestNext()
             emit(100)
         }
     }
@@ -66,32 +70,44 @@ class GetCategoryDataInteractorImpl @Inject constructor(
     private val repository: CategoryRepository
 ) : GetCategoryDataInteractor {
 
-    private var autoRefreshIsOn = false
-    private var nextItemRequested = false
+    private lateinit var autoRefreshJob: Job
+    private var pausedFlag = false
 
-    private val _dataFlow = flow {
-        while (true) {
-            if (autoRefreshIsOn || nextItemRequested) {
-                nextItemRequested = false
+    override fun requestNext() {
+        repository.requestNext()
+    }
 
-                emit(repository.requestNext())
-                log("Next item received from repository and emitted")
+    override suspend fun setAutoRefresh(isOn: Boolean) {
+        if (isOn) {
+            log("Auto-refresh is ON - start spinning")
+            coroutineScope {
+                autoRefreshJob = launch {
+                    while (true) {
+
+                        if (!pausedFlag) {
+                            repository.requestNext()
+                            log("Requested next item...")
+                        } else {
+                            log("Pause flag is ON - just waiting 2000 ms...")
+                        }
+
+                        delay(2000)
+                    }
+                }
             }
-
-            delay(2000)
+        } else {
+            log("Auto-refresh is OFF - canceling job... ")
+            autoRefreshJob.cancel()
         }
     }
 
-    override fun requestNext() {
-        nextItemRequested = true
+    override fun pauseAutoRefresh(isPaused: Boolean) {
+        log("Auto-refresh pause flag = $isPaused")
+        pausedFlag = isPaused
     }
 
-    override fun setAutoRefresh(isOn: Boolean) {
-        autoRefreshIsOn = isOn
-    }
-
-    private val _sharedFlowCategoryData =
-        _dataFlow.shareIn(
+    private val _sharedFlowCategoryData = repository.catDetailsColdFlow
+        .shareIn(
             ProcessLifecycleOwner.get().lifecycleScope,
             SharingStarted.WhileSubscribed(),
             3)

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
+import com.r42914lg.tryflow.utils.log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -23,7 +24,9 @@ class MainViewModel @Inject constructor(
 
     fun onAutoRefreshClicked() {
         _autoRefreshStatus.value = !_autoRefreshStatus.value!!
-        getCategoryDataInteractor.setAutoRefresh(_autoRefreshStatus.value!!)
+        viewModelScope.launch {
+            getCategoryDataInteractor.setAutoRefresh(_autoRefreshStatus.value!!)
+        }
     }
 
     private val _contentState: MutableStateFlow<ContentState> = MutableStateFlow(ContentState.Loading)
@@ -48,5 +51,13 @@ class MainViewModel @Inject constructor(
 
     fun requestNext() {
         getCategoryDataInteractor.requestNext()
+    }
+
+    fun onFragmentPaused() {
+        getCategoryDataInteractor.pauseAutoRefresh(true)
+    }
+
+    fun onFragmentResumed() {
+        getCategoryDataInteractor.pauseAutoRefresh(false)
     }
 }

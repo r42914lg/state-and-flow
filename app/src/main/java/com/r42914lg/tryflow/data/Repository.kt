@@ -2,6 +2,7 @@ package com.r42914lg.tryflow.data
 
 import com.r42914lg.tryflow.domain.*
 import com.r42914lg.tryflow.utils.Result
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
@@ -22,6 +23,8 @@ class CategoryRepositoryImpl @Inject constructor(
         categoryLocalDataSource.saveAll(detailsMap)
     }
 
-    override suspend fun requestNext(): Result<CategoryDetailed, Throwable> =
-        categoryLocalDataSource.getCategoryData()
+    override fun requestNext() = categoryLocalDataSource.nextItem()
+
+    override val catDetailsColdFlow: Flow<Result<CategoryDetailed, Throwable>>
+        get() = categoryLocalDataSource.createCatDataFlow
 }

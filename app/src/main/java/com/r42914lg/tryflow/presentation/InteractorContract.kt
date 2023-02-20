@@ -11,6 +11,8 @@ interface GetProgressUseCase {
 
 interface GetCategoryDataInteractor {
     fun requestNext()
-    fun setAutoRefresh(isOn: Boolean)
+    suspend fun setAutoRefresh(isOn: Boolean)
+    fun pauseAutoRefresh(isPaused: Boolean)
+
     val sharedFlowCategoryData : SharedFlow<Result<CategoryDetailed, Throwable>>
 }
