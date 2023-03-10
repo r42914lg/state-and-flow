@@ -10,13 +10,17 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.r42914lg.tryflow.R
+import com.r42914lg.tryflow.domain.CategoryDetailed
 import com.r42914lg.tryflow.domain.asString
 import com.r42914lg.tryflow.utils.log
 import com.r42914lg.tryflow.utils.observeIn
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainFragment : Fragment() {
@@ -53,12 +57,12 @@ class MainFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.onFragmentPaused()
+        viewModel.onEvent(MainScreenEvent.FragmentPaused)
     }
 
     override fun onResume() {
         super.onResume()
-        viewModel.onFragmentResumed()
+        viewModel.onEvent(MainScreenEvent.FragmentResumed)
     }
 
     private fun initUi(view: View) {
@@ -73,11 +77,11 @@ class MainFragment : Fragment() {
         tvStatus = view.findViewById(R.id.status_bar)
 
         btnNextItem.setOnClickListener {
-            viewModel.requestNext()
+            viewModel.onEvent(MainScreenEvent.NextItemClick)
         }
 
         btnAutoRefresh.setOnClickListener {
-            viewModel.onAutoRefreshClicked()
+            viewModel.onEvent(MainScreenEvent.AutoRefreshClick)
         }
 
         btnStats.setOnClickListener {
@@ -89,49 +93,71 @@ class MainFragment : Fragment() {
     }
 
     private fun setupObservers() {
-
-        viewModel.autoRefreshStatus.observe(viewLifecycleOwner) {
-            btnAutoRefresh.text = if (it) "AUTO-REFRESH ON" else "AUTO-REFRESH OFF"
-        }
-
-        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            viewModel.downloadProgress.collect() {
-                progressBar.progress = it
-            }
-
-            viewModel.contentState
-                .onEach {
-                    log("Main fragment consumed item: $it")
-                    when (it) {
-                        is ContentState.Loading -> {
-                            tvStatus.visibility = View.VISIBLE
-                            btnAutoRefresh.isEnabled = false
-                            btnNextItem.isEnabled = false
-                            btnStats.isEnabled = false
-                        }
-                        is ContentState.Error -> {
-                            tvStatus.visibility = View.INVISIBLE
-                            btnAutoRefresh.isEnabled = true
-                            btnStats.isEnabled = true
-                            btnNextItem.isEnabled = true
-                            Toast.makeText(requireContext(), "Error while loading", Toast.LENGTH_LONG)
-                                .show()
-                        }
-                        is ContentState.Content -> {
-                            btnAutoRefresh.isEnabled = true
-                            btnStats.isEnabled = true
-                            btnNextItem.isEnabled = true
-                            tvStatus.visibility = View.INVISIBLE
-
-                            val catDetail = it.categoryDetailed
-                            tvId.text = catDetail.id.toString()
-                            tvTitle.text = catDetail.title
-                            tvCount.text = catDetail.cluesCount.toString()
-                            tvClues.text = catDetail.clues.asString()
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                viewModel.state
+                    .onEach {
+                        log("Main fragment consumed item: $it")
+                        when (it) {
+                            is MainScreenState.Loading -> renderLoading(it)
+                            is MainScreenState.Error -> renderError(it)
+                            is MainScreenState.Content -> renderContent(it)
+                            is MainScreenState.AutoRefreshStatus -> renderAutoRefresh(it)
                         }
                     }
-                }
-                .observeIn(this@MainFragment)
+                    .observeIn(this@MainFragment)
+            }
         }
     }
+
+    private fun renderLoading(state: MainScreenState.Loading) {
+        if (state.progress < 100) {
+            tvStatus.visibility = View.VISIBLE
+            progressBar.progress = state.progress
+        } else {
+            tvStatus.visibility = View.INVISIBLE
+            progressBar.visibility = View.INVISIBLE
+        }
+
+        btnAutoRefresh.isEnabled = false
+        btnNextItem.isEnabled = false
+        btnStats.isEnabled = false
+    }
+
+    private fun renderError(state: MainScreenState.Error) {
+        Toast.makeText(
+            requireContext(),
+            "Error while loading: ${state.throwable.message}",
+            Toast.LENGTH_LONG).show()
+
+        tvStatus.visibility = View.INVISIBLE
+        btnAutoRefresh.isEnabled = true
+        btnStats.isEnabled = true
+        btnNextItem.isEnabled = true
+    }
+
+    private fun renderContent(state: MainScreenState.Content) {
+        val catDetail = state.categoryDetailed
+
+        tvId.text = catDetail.id.toString()
+        tvTitle.text = catDetail.title
+        tvCount.text = catDetail.cluesCount.toString()
+        tvClues.text = catDetail.clues.asString()
+
+        btnAutoRefresh.isEnabled = true
+        btnStats.isEnabled = true
+        btnNextItem.isEnabled = true
+        tvStatus.visibility = View.INVISIBLE
+    }
+
+    private fun renderAutoRefresh(status: MainScreenState.AutoRefreshStatus) {
+        btnAutoRefresh.text = if (status.autoRefresh) "AUTO-REFRESH ON" else "AUTO-REFRESH OFF"
+    }
+}
+
+sealed interface MainScreenState {
+    data class Loading(val progress: Int): MainScreenState
+    data class Error(val throwable: Throwable): MainScreenState
+    data class Content(val categoryDetailed: CategoryDetailed): MainScreenState
+    data class AutoRefreshStatus(val autoRefresh: Boolean): MainScreenState
 }

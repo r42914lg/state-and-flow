@@ -1,63 +1,69 @@
 package com.r42914lg.tryflow.presentation
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
-import com.r42914lg.tryflow.utils.log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val progressUseCase: GetProgressUseCase,
-    private val getCategoryDataInteractor: GetCategoryDataInteractor,
+    private val getProgressUseCase: GetProgressUseCase,
+    private val getCategoryFlowUseCase: GetCategoryFlowUseCase,
+    private val setAutorefreshUseCase: SetAutorefreshUseCase,
+    private val requestNextCategoryUseCase: RequestNextCategoryUseCase
 ) : ViewModel() {
 
-    private val _autoRefreshStatus = MutableLiveData(false)
-    val autoRefreshStatus: LiveData<Boolean>
-        get() = _autoRefreshStatus
+    private var autoRefresh = false
 
-    fun onAutoRefreshClicked() {
-        _autoRefreshStatus.value = !_autoRefreshStatus.value!!
-        viewModelScope.launch {
-            getCategoryDataInteractor.setAutoRefresh(_autoRefreshStatus.value!!)
-        }
-    }
+    private val _state: MutableStateFlow<MainScreenState> =
+        MutableStateFlow(MainScreenState.Loading(0))
 
-    private val _contentState: MutableStateFlow<ContentState> = MutableStateFlow(ContentState.Loading)
-    val contentState: StateFlow<ContentState>
-        get() = _contentState
-
-    lateinit var downloadProgress: Flow<Int>
+    val state: StateFlow<MainScreenState>
+        get() = _state
 
     init {
         viewModelScope.launch {
-            downloadProgress = progressUseCase.progressFlow
+            getProgressUseCase.execute().collect {
+                _state.emit(MainScreenState.Loading(it))
+                if (it == 100)
+                    requestNextCategoryUseCase.execute()
+            }
 
-            getCategoryDataInteractor.sharedFlowCategoryData.collect {
+            getCategoryFlowUseCase.execute().collect {
                 it.doOnError { error ->
-                    _contentState.emit(ContentState.Error(error))
+                    _state.emit(MainScreenState.Error(error))
                 }.doOnSuccess { data ->
-                    _contentState.emit(ContentState.Content(data))
+                    _state.emit(MainScreenState.Content(data))
                 }
             }
         }
     }
 
-    fun requestNext() {
-        getCategoryDataInteractor.requestNext()
+    fun onEvent(event: MainScreenEvent) {
+        when (event) {
+            MainScreenEvent.FragmentPaused -> setAutorefreshUseCase.pauseAutoRefresh()
+            MainScreenEvent.FragmentResumed -> setAutorefreshUseCase.resumeAutorefresh()
+            MainScreenEvent.NextItemClick -> requestNextCategoryUseCase.execute()
+            MainScreenEvent.AutoRefreshClick -> onAutoRefreshClicked()
+        }
     }
 
-    fun onFragmentPaused() {
-        getCategoryDataInteractor.pauseAutoRefresh(true)
+    private fun onAutoRefreshClicked() {
+        autoRefresh = !autoRefresh
+        viewModelScope.launch {
+            _state.emit(MainScreenState.AutoRefreshStatus(autoRefresh))
+            setAutorefreshUseCase.execute(autoRefresh)
+        }
     }
+}
 
-    fun onFragmentResumed() {
-        getCategoryDataInteractor.pauseAutoRefresh(false)
-    }
+sealed interface MainScreenEvent {
+    object NextItemClick: MainScreenEvent
+    object AutoRefreshClick: MainScreenEvent
+    object FragmentPaused: MainScreenEvent
+    object FragmentResumed: MainScreenEvent
 }

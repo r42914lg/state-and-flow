@@ -6,6 +6,7 @@ import com.r42914lg.tryflow.utils.Result
 import com.r42914lg.tryflow.utils.runOperationCatching
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -45,7 +46,6 @@ class CategoryLocalDataSource @Inject constructor() {
     private val _detailsMap = mutableMapOf<Int, CategoryDetailed>()
     private val _keys = mutableSetOf<Int>()
     private var currIndex = 0
-    private val mutex = Mutex(locked = true)
 
     val isReady: Boolean
         get() = _keys.isNotEmpty()
@@ -57,31 +57,7 @@ class CategoryLocalDataSource @Inject constructor() {
         log("finished saveData")
     }
 
-    val createCatDataFlow = flow {
-        while(true) {
-            log("Another spin in flow {} while...")
-            mutex.lock()
-
-            try {
-                emit(getCategoryData())
-            } catch (ex: java.lang.IllegalStateException) {
-                log("Suppress !!!")
-            } finally {
-                if (mutex.isLocked)
-                    mutex.unlock()
-            }
-
-            mutex.lock()
-        }
-    }
-
-    fun nextItem() {
-        log("Unlocking mutex if locked")
-        if (mutex.isLocked)
-            mutex.unlock()
-    }
-
-    private suspend fun getCategoryData(): Result<CategoryDetailed, Throwable> =
+    suspend fun getNextItem(): Result<CategoryDetailed, Throwable> =
         runOperationCatching {
             delay(1000)
             log("getCategoryData - about to retrieve next")

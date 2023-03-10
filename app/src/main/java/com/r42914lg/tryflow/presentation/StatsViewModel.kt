@@ -6,16 +6,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    private val getCategoryDataInteractor: GetCategoryDataInteractor,
+    getCategoryFlowUseCase: GetCategoryFlowUseCase,
+    private val autorefreshUseCase: SetAutorefreshUseCase
 ) : ViewModel()
 {
-    val categorySharedFlow = getCategoryDataInteractor.sharedFlowCategoryData
+    val categorySharedFlow = getCategoryFlowUseCase.execute()
 
     fun onFragmentPaused() {
-        getCategoryDataInteractor.pauseAutoRefresh(true)
+        autorefreshUseCase.pauseAutoRefresh()
     }
 
     fun onFragmentResumed() {
-        getCategoryDataInteractor.pauseAutoRefresh(false)
+        autorefreshUseCase.resumeAutorefresh()
     }
 }

@@ -3,7 +3,7 @@ package com.r42914lg.tryflow.domain
 data class Category(
     val id: Int,
     val title: String,
-    val cluesCount: Int,
+    val clues_count: Int,
 )
 
 data class CategoryDetailed(

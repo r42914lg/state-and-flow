@@ -3,13 +3,13 @@ package com.r42914lg.tryflow.di
 import com.r42914lg.tryflow.MyApp
 import com.r42914lg.tryflow.data.*
 import com.r42914lg.tryflow.domain.*
-import com.r42914lg.tryflow.presentation.GetCategoryDataInteractor
-import com.r42914lg.tryflow.presentation.GetProgressUseCase
+import com.r42914lg.tryflow.presentation.*
 
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -68,18 +68,17 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideCatInteractorImpl(repository: CategoryRepository) = GetProgressUseCaseImpl(repository)
+    fun provideGetProgressUseCase(repository: CategoryRepository): GetProgressUseCase = GetProgressUseCaseImpl(repository)
 
     @Singleton
     @Provides
-    fun provideStatsInteractorImpl(repository: CategoryRepository) = GetCategoryDataInteractorImpl(repository)
+    fun provideSetAutorefreshUseCase(repository: CategoryRepository): SetAutorefreshUseCase = SetAutorefreshUseCaseImpl(repository)
 
     @Singleton
     @Provides
-    fun provideGetProgressUC(impl: GetProgressUseCaseImpl): GetProgressUseCase = impl
+    fun provideGetCategoryFlowUseCase(repository: CategoryRepository): GetCategoryFlowUseCase = GetCategoryFlowUseCaseImpl(repository)
 
     @Singleton
     @Provides
-    fun provideGetCategoryDataInteractor(impl: GetCategoryDataInteractorImpl): GetCategoryDataInteractor = impl
-
+    fun provideRequestNextCategoryUseCase(repository: CategoryRepository): RequestNextCategoryUseCase = RequestNextCategoryUseCaseImpl(repository)
 }

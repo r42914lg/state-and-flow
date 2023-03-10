@@ -1,30 +1,123 @@
 package com.r42914lg.tryflow.data
 
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.r42914lg.tryflow.domain.*
 import com.r42914lg.tryflow.utils.Result
-import kotlinx.coroutines.flow.Flow
+import com.r42914lg.tryflow.utils.doOnError
+import com.r42914lg.tryflow.utils.doOnSuccess
+import com.r42914lg.tryflow.utils.log
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
+    private val ioDispatcher: CoroutineDispatcher,
     private val categoryLocalDataSource: CategoryLocalDataSource,
     private val categoryRemoteDataSource: CategoryRemoteDataSource
 ) : CategoryRepository {
 
-    override val repoIsReady: Boolean
-        get() = categoryLocalDataSource.isReady
+    private var repoIsReady = categoryLocalDataSource.isReady
 
-    override suspend fun getCategories(): Result<List<Category>, Throwable> =
-        categoryRemoteDataSource.getCategories()
+    private val _progressFlow = flow {
+        if (repoIsReady) {
+            emit(100)
+            return@flow
+        }
 
-    override suspend fun getDetails(id: Int): Result<CategoryDetailed, Throwable> =
-        categoryRemoteDataSource.getDetails(id)
+        val catList: Result<List<Category>, Throwable>
+        withContext(ioDispatcher) {
+            catList = categoryRemoteDataSource.getCategories()
+        }
 
-    override suspend fun saveAll(detailsMap: Map<Int, CategoryDetailed>) {
-        categoryLocalDataSource.saveAll(detailsMap)
+        catList.doOnError {
+            emit(-1)
+        }.doOnSuccess { categoryList ->
+            emit(1)
+
+            val detailsMap = mutableMapOf<Int, CategoryDetailed>()
+            var loadedCount = 0
+
+            categoryList.forEach { category ->
+                val detail: Result<CategoryDetailed, Throwable>
+                withContext(ioDispatcher) {
+                    detail = categoryRemoteDataSource.getDetails(category.id)
+                }
+
+                loadedCount++
+
+                detail.doOnSuccess {
+                    detailsMap[it.id] = it
+                    emit(((loadedCount.toFloat() / categoryList.size) * 100).toInt() -1)
+                }.doOnError {
+                    log("error in CatDetails... just skip")
+                }
+            }
+
+            categoryLocalDataSource.saveAll(detailsMap)
+
+            emit(100)
+        }
     }
 
-    override fun requestNext() = categoryLocalDataSource.nextItem()
+    override val progressFlow: Flow<Int>
+        get() = _progressFlow
 
-    override val catDetailsColdFlow: Flow<Result<CategoryDetailed, Throwable>>
-        get() = categoryLocalDataSource.createCatDataFlow
+
+    private val mutableSharedFlowCategoryData = MutableSharedFlow<Result<CategoryDetailed, Throwable>>()
+    private val _sharedFlowCategoryData = mutableSharedFlowCategoryData
+        .shareIn(
+            ProcessLifecycleOwner.get().lifecycleScope,
+            SharingStarted.WhileSubscribed(),
+            3)
+
+    override val sharedFlowCategoryData: SharedFlow<Result<CategoryDetailed, Throwable>>
+        get() = _sharedFlowCategoryData
+
+    override fun requestNext() {
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            val detail: Result<CategoryDetailed, Throwable>
+            withContext(ioDispatcher) {
+                detail = categoryLocalDataSource.getNextItem()
+            }
+            mutableSharedFlowCategoryData.emit(detail)
+        }
+    }
+
+    private lateinit var autoRefreshJob: Job
+    private var pausedFlag = false
+
+    override suspend fun setAutoRefresh(isOn: Boolean) = withContext(ioDispatcher) {
+        if (isOn) {
+            log("Auto-refresh is ON - start spinning")
+            coroutineScope {
+                autoRefreshJob = launch {
+                    while (true) {
+
+                        if (!pausedFlag) {
+                            requestNext()
+                            log("Requested next item...")
+                        } else {
+                            log("Pause flag is ON - just waiting 2000 ms...")
+                        }
+
+                        delay(2000)
+                    }
+                }
+            }
+        } else {
+            log("Auto-refresh is OFF - canceling job... ")
+            autoRefreshJob.cancel()
+        }
+    }
+
+    override fun pauseAutoRefresh() {
+        log("Auto-refresh PAUSING...")
+        pausedFlag = true
+    }
+
+    override fun resumeAutoRefresh() {
+        log("Auto-refresh RESUMING...")
+        pausedFlag = false
+    }
 }
