@@ -9,6 +9,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -48,7 +50,7 @@ object AppModule {
     fun provideRepositoryImpl(
         localDataSource: CategoryLocalDataSource,
         remoteDataSource: CategoryRemoteDataSource
-    ) = CategoryRepositoryImpl(localDataSource, remoteDataSource)
+    ) = CategoryRepositoryImpl(Dispatchers.IO, localDataSource, remoteDataSource)
 
     @Singleton
     @Provides

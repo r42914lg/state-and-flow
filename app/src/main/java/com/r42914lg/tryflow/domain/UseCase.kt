@@ -38,7 +38,7 @@ class RequestNextCategoryUseCaseImpl @Inject constructor(
     private val repository: CategoryRepository
 ) : RequestNextCategoryUseCase {
 
-    override fun execute() {
+    override suspend fun execute() {
         repository.requestNext()
     }
 }

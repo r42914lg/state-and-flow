@@ -47,7 +47,7 @@ class MainViewModel @Inject constructor(
         when (event) {
             MainScreenEvent.FragmentPaused -> setAutorefreshUseCase.pauseAutoRefresh()
             MainScreenEvent.FragmentResumed -> setAutorefreshUseCase.resumeAutorefresh()
-            MainScreenEvent.NextItemClick -> requestNextCategoryUseCase.execute()
+            MainScreenEvent.NextItemClick -> viewModelScope.launch { requestNextCategoryUseCase.execute() }
             MainScreenEvent.AutoRefreshClick -> onAutoRefreshClicked()
         }
     }

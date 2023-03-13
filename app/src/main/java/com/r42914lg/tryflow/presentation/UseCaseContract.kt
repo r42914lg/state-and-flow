@@ -20,5 +20,5 @@ interface SetAutorefreshUseCase {
 }
 
 interface RequestNextCategoryUseCase {
-    fun execute()
+    suspend fun execute()
 }

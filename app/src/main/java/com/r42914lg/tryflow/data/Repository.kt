@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
-    private val ioDispatcher: CoroutineDispatcher,
+    private val dispatcher: CoroutineDispatcher,
     private val categoryLocalDataSource: CategoryLocalDataSource,
     private val categoryRemoteDataSource: CategoryRemoteDataSource
 ) : CategoryRepository {
@@ -26,7 +26,7 @@ class CategoryRepositoryImpl @Inject constructor(
         }
 
         val catList: Result<List<Category>, Throwable>
-        withContext(ioDispatcher) {
+        withContext(dispatcher) {
             catList = categoryRemoteDataSource.getCategories()
         }
 
@@ -40,7 +40,7 @@ class CategoryRepositoryImpl @Inject constructor(
 
             categoryList.forEach { category ->
                 val detail: Result<CategoryDetailed, Throwable>
-                withContext(ioDispatcher) {
+                withContext(dispatcher) {
                     detail = categoryRemoteDataSource.getDetails(category.id)
                 }
 
@@ -77,7 +77,7 @@ class CategoryRepositoryImpl @Inject constructor(
     override fun requestNext() {
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             val detail: Result<CategoryDetailed, Throwable>
-            withContext(ioDispatcher) {
+            withContext(dispatcher) {
                 detail = categoryLocalDataSource.getNextItem()
             }
             mutableSharedFlowCategoryData.emit(detail)
@@ -87,7 +87,7 @@ class CategoryRepositoryImpl @Inject constructor(
     private lateinit var autoRefreshJob: Job
     private var pausedFlag = false
 
-    override suspend fun setAutoRefresh(isOn: Boolean) = withContext(ioDispatcher) {
+    override suspend fun setAutoRefresh(isOn: Boolean) = withContext(dispatcher) {
         if (isOn) {
             log("Auto-refresh is ON - start spinning")
             coroutineScope {
