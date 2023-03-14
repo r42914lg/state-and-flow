@@ -20,10 +20,6 @@ class GetProgressUseCaseTestImpl(private val values: List<Int>): GetProgressUseC
 }
 
 private val mutableSharedFlowCategoryData = MutableSharedFlow<Result<CategoryDetailed, Throwable>>()
-//private val sharedFlowCategoryData = mutableSharedFlowCategoryData.shareIn(
-//    ProcessLifecycleOwner.get().lifecycleScope,
-//    SharingStarted.WhileSubscribed(),
-//    3)
 
 class GetCategoryFlowUseCaseTestImpl: GetCategoryFlowUseCase {
     override fun execute(): SharedFlow<Result<CategoryDetailed, Throwable>> {

@@ -29,7 +29,7 @@ class MainViewModelUnitTest {
             assertEquals(MainScreenState.Loading(0), awaitItem())
             assertEquals(MainScreenState.Loading(50), awaitItem())
             assertEquals(MainScreenState.Loading(100), awaitItem())
-//            assertEquals(CONTENT, awaitItem())
+            assertEquals(CONTENT, awaitItem())
             cancel()
         }
     }
