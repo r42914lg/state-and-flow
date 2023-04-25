@@ -9,7 +9,11 @@ import com.r42914lg.tryflow.presentation.GetProgressUseCase
 import com.r42914lg.tryflow.presentation.RequestNextCategoryUseCase
 import com.r42914lg.tryflow.presentation.SetAutorefreshUseCase
 import com.r42914lg.tryflow.utils.Result
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.test.StandardTestDispatcher
 
 /**
  * Mocked uses cases for testing purposes
@@ -22,9 +26,9 @@ class GetProgressUseCaseTestImpl(private val values: List<Int>): GetProgressUseC
 private val mutableSharedFlowCategoryData = MutableSharedFlow<Result<CategoryDetailed, Throwable>>()
 
 class GetCategoryFlowUseCaseTestImpl: GetCategoryFlowUseCase {
-    override fun execute(): SharedFlow<Result<CategoryDetailed, Throwable>> {
+    override fun execute(cs: CoroutineScope): SharedFlow<Result<CategoryDetailed, Throwable>> {
         return mutableSharedFlowCategoryData.shareIn(
-            ProcessLifecycleOwner.get().lifecycleScope,
+            cs,
             SharingStarted.WhileSubscribed(),
             3)
     }

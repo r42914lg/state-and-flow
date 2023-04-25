@@ -2,10 +2,12 @@ package com.r42914lg.tryflow.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.r42914lg.tryflow.domain.CategoryDetailed
+import com.r42914lg.tryflow.domain.Clue
 import com.r42914lg.tryflow.utils.doOnSuccess
 import com.r42914lg.tryflow.utils.doOnError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
@@ -14,7 +16,7 @@ class MainViewModel @Inject constructor(
     private val getProgressUseCase: GetProgressUseCase,
     private val getCategoryFlowUseCase: GetCategoryFlowUseCase,
     private val setAutorefreshUseCase: SetAutorefreshUseCase,
-    private val requestNextCategoryUseCase: RequestNextCategoryUseCase
+    private val requestNextCategoryUseCase: RequestNextCategoryUseCase,
 ) : ViewModel() {
 
     private var autoRefresh = false
@@ -29,11 +31,14 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             getProgressUseCase.execute().collect {
                 _state.emit(MainScreenState.Loading(it))
-                if (it == 100)
-                    requestNextCategoryUseCase.execute()
             }
 
-            getCategoryFlowUseCase.execute().collect {
+            launch {
+                delay(100)
+                requestNextCategoryUseCase.execute()
+            }
+
+            getCategoryFlowUseCase.execute(viewModelScope).collect {
                 it.doOnError { error ->
                     _state.emit(MainScreenState.Error(error))
                 }.doOnSuccess { data ->

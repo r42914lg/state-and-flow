@@ -2,6 +2,8 @@ package com.r42914lg.tryflow.presentation
 
 import com.r42914lg.tryflow.domain.CategoryDetailed
 import com.r42914lg.tryflow.utils.Result
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -10,7 +12,7 @@ interface GetProgressUseCase {
 }
 
 interface GetCategoryFlowUseCase {
-    fun execute() : SharedFlow<Result<CategoryDetailed, Throwable>>
+    fun execute(cs: CoroutineScope) : SharedFlow<Result<CategoryDetailed, Throwable>>
 }
 
 interface SetAutorefreshUseCase {

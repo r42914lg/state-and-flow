@@ -5,6 +5,8 @@ import com.r42914lg.tryflow.presentation.GetProgressUseCase
 import com.r42914lg.tryflow.presentation.RequestNextCategoryUseCase
 import com.r42914lg.tryflow.presentation.SetAutorefreshUseCase
 import com.r42914lg.tryflow.utils.Result
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
@@ -30,7 +32,7 @@ class GetCategoryFlowUseCaseImpl @Inject constructor(
     private val repository: CategoryRepository
 ) : GetCategoryFlowUseCase {
 
-    override fun execute(): SharedFlow<Result<CategoryDetailed, Throwable>> =
+    override fun execute(cs: CoroutineScope): SharedFlow<Result<CategoryDetailed, Throwable>> =
         repository.sharedFlowCategoryData
 }
 

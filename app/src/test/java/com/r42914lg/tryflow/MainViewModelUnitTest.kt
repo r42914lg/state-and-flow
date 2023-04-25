@@ -16,20 +16,20 @@ class MainViewModelUnitTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun check_StateIsLoading_1_To_100_Then_Content() = runTest {
+    fun check_StateIsLoading_1_To_100_Then_Content() = runTest() {
 
         val vm = MainViewModel(
             GetProgressUseCaseTestImpl(listOf(50,100)),
             GetCategoryFlowUseCaseTestImpl(),
             SetAutorefreshUseCaseTestImpl(),
-            RequestNextCategoryUseCaseTestImpl()
+            RequestNextCategoryUseCaseTestImpl(),
         )
 
         vm.state.test {
             assertEquals(MainScreenState.Loading(0), awaitItem())
             assertEquals(MainScreenState.Loading(50), awaitItem())
             assertEquals(MainScreenState.Loading(100), awaitItem())
-            assertEquals(CONTENT, awaitItem())
+            assertEquals(MainScreenState.Content(CONTENT), awaitItem())
             cancel()
         }
     }
